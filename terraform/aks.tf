@@ -40,7 +40,7 @@ resource "azurerm_kubernetes_cluster" "main" {
 
   default_node_pool {
     name                         = "system"
-    vm_size                      = "Standard_B2s"
+    vm_size                      = "Standard_B2s_v2"
     node_count                   = 1
     vnet_subnet_id               = azurerm_subnet.aks.id
     only_critical_addons_enabled = true # keep app workloads on the user pool
@@ -84,7 +84,7 @@ resource "azurerm_kubernetes_cluster" "main" {
 resource "azurerm_kubernetes_cluster_node_pool" "user" {
   name                  = "user"
   kubernetes_cluster_id = azurerm_kubernetes_cluster.main.id
-  vm_size               = "Standard_B2s"
+  vm_size               = "Standard_B2s_v2"
   node_count            = 1
   vnet_subnet_id        = azurerm_subnet.aks.id
   mode                  = "User"

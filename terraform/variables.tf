@@ -2,11 +2,11 @@ variable "project" { type = string }
 variable "environment" { type = string }
 variable "region" {
   type    = string
-  default = "westeurope"
+  default = "swedencentral"
 }
 variable "region_short" {
   type    = string
-  default = "weu"
+  default = "sdc"
 }
 variable "instance" {
   type    = string
