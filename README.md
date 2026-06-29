@@ -264,6 +264,8 @@ Real problems from building this for real — the root-cause/fix is the useful p
 
 ## Cost
 
+AKS is the meter that matters: two `B2s_v2` nodes ≈ **€2–3/day** if left running, plus a Standard LB, ACR Basic (~€0.14/day), and the Burstable PG. A deploy-verify-destroy session is roughly **€1–2**. Everything is in one resource group — `terraform destroy` (after `helm uninstall` of the add-ons, or just delete the RG) returns the spend to ~€0.
+
 ```bash
 helm uninstall notes -n app
 terraform destroy        # tears down AKS, PG, ACR, KV, VNet
