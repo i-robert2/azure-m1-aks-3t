@@ -241,9 +241,28 @@ kubectl get hpa -n app                  # api HPA reading CPU
 
 ---
 
-## Cost
+## Issues we hit (and how we fixed them)
 
-AKS is the meter that matters: two `B2s_v2` nodes ≈ **€2–3/day** if left running, plus a Standard LB, ACR Basic (~€0.14/day), and the Burstable PG. A deploy-verify-destroy session is roughly **€1–2**. Everything is in one resource group — `terraform destroy` (after `helm uninstall` of the add-ons, or just delete the RG) returns the spend to ~€0.
+Real problems from building this for real — the root-cause/fix is the useful part. (The two region restrictions that forced `swedencentral` are covered above in [Region restrictions](#region-restrictions--read-this-first).)
+
+### `terraform apply` failed on both Postgres and AKS in West Europe
+**Symptom:** Apply created ~18 resources then failed: Postgres with `LocationIsOfferRestricted`, AKS with "VM size `Standard_B2s` is not allowed in your subscription in location 'westeurope'".
+**Cause:** Two independent subscription restrictions in `westeurope` — PG Flexible Server is **offer-restricted**, and the VM allow-list excludes the **v1 B-series** (only `*_v2` allowed).
+**Fix:** Moved the whole stack to **`swedencentral`** (where both are available) and switched node pools to **`Standard_B2s_v2`**. Because a private, VNet-integrated PG must live in the same region as the cluster, the entire stack relocates together. See the [Region restrictions](#region-restrictions--read-this-first) section for the exact capability checks.
+
+### `az acr build` of the frontend crashed the terminal
+**Symptom:** The frontend image build aborted with `'charmap' codec can't encode character '\u2713'`.
+**Cause:** The Azure CLI streams the remote build log, and Windows' console encoding can't render Vite's `✓` glyph — the **client** crashes even though the **server-side build succeeds**.
+**Fix:** Add `--no-logs` to `az acr build` for the frontend. The image still builds and pushes in ACR.
+
+### API pod couldn't authenticate to Postgres
+**Symptom:** The API never became ready; it couldn't connect to the database.
+**Cause:** The Helm chart's CSI `SecretProviderClass` mounted `pg-app-password`, but the app connects as the `pgadmin` server admin (and runs `CREATE TABLE` on startup, which needs that role). Admin user + app-password = auth failure.
+**Fix:** Pointed the CSI mount at `pg-admin-password` (keyed to `PG_PASSWORD`) so the user and password match. (A least-privilege app role would need a bootstrap step, since the private DB isn't reachable from a laptop.)
+
+---
+
+## Cost
 
 ```bash
 helm uninstall notes -n app
